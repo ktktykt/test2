@@ -1,0 +1,44 @@
+---
+title: '2016.5.11 gacco: ga063 社会人のためのデータサイエンス演習 '
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Week3:分析の具体的手法 ビジネス課題解決のためのデータ分析基礎(事例と手法)(2)
+
+課題を解いていく その２
+
+```{r}
+dat.path <- "https://lms.gacco.org/asset-v1:gacco+ga063+2016_04+type@asset+block/dummydata_B.csv"
+dat <- read.csv(file(dat.path, encoding = "Shift-JIS"))
+head(dat)
+summary(dat)
+
+colnames(dat)
+```
+```{r}
+dat2 <- dat
+dat2$ym <- ts(1:nrow(dat),fr=12,start=2010)
+
+library(dygraphs)
+dygraph(dat2[,c("ym","１４背広服")])
+
+# 移動平均
+#install.packages("TTR")
+library(TTR)
+dygraph(cbind(dat2[,c("ym","１４背広服")],SMA(dat2[,c("１４背広服")],12)))
+
+
+```
+### ヒストグラムつくってみよー
+
+```{r}
+#install.packages("devtools")
+#devtools::install_github("milesmcbain/shist")
+library(shist)
+shist(dat$`１４背広服`, bin_step = 1)
+```
+

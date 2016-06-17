@@ -1,0 +1,129 @@
+---
+title: '2016.5.11 gacco: ga063 社会人のためのデータサイエンス演習 '
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Week3:分析の具体的手法 ビジネス課題解決のためのデータ分析基礎(事例と手法)(2)
+
+課題を解いていく
+
+## データ加工
+
+### net上のデータを読み込み
+
+```{r Read Data, echo=T}
+dat.path = "https://lms.gacco.org/asset-v1:gacco+ga063+2016_04+type@asset+block/dummydata_A.csv"
+dat <- read.csv(file(dat.path,encoding = "Shift-JIS"))
+head(dat, 2)
+```
+
+### カンマ区切りの数値を数値型に変換
+
+```{r Edit Data, echo=T}
+colnames(dat[,c(10:ncol(dat))])
+dat2 <- apply(dat[,c(10:ncol(dat))], 1:2, function(x){return (as.integer(gsub(",","",x)))})
+head(dat2, 3)
+head(dat[,c(1:9)])
+dat2 <- cbind(dat[,c(1:9)], dat2)
+head(dat2, 3)
+
+summary(dat2)
+```
+
+今回は、欠測もなくただの整数なのでなにも気にしなくて良いが、気にするときはどうすべきかな？
+
+### reshape2で集計していく
+
+```{r Reshape}
+library(reshape2)
+
+head(melt(dat2), 3)
+```
+パラメータなしでmeltするだけで、気持ちよく整形してくれる
+
+```{r }
+colnames(dat2[2:8])
+paste(colnames(dat2[2:8]), collapse = "+")
+paste(paste(colnames(dat2[2:8]), collapse = "+"), "~variable")
+
+head(dcast(melt(dat2), paste(paste(colnames(dat2[2:8]), collapse = "+"), "~variable"), mean), 3)
+dcast(melt(dat2), 住居の所有関係 + 就業.非就業の別 ~ variable, mean)
+melt(dcast(melt(dat2), 住居の所有関係 + 就業.非就業の別 ~ variable, mean))
+subset(melt(dcast(melt(dat2), 住居の所有関係 + 就業.非就業の別 ~ variable, mean)), variable=="教養娯楽費")
+```
+よしいい感じ
+
+散布図を見ていく
+
+```{r}
+library(dygraphs)
+dygraph(dat2[,c("食費","教養娯楽費")])
+plot(dat2[,c("食費","教養娯楽費")])
+```
+これじゃなかった。。。
+
+```{r }
+library(rCharts)
+#rPlot(食費 ~ 教養娯楽費 , data = dat2, type="point")
+```
+このままプロットするとRMarkdownでおちるみたい。。
+
+```{r results = 'asis', comment = NA}
+library(rCharts)
+
+n1 <- rPlot(教養娯楽費 ~ 食費, data = dat2, type="point")
+n1$print(include_assets=TRUE)
+#n1$show("iframesrc", cdn = TRUE)
+```
+
+### 一度に相関関係をみてみる
+
+```{r}
+pairs(dat2[9:ncol(dat2)])
+#plot(dat2[10:ncol(dat2)])
+#plot(iris)
+#cor(iris)
+```
+別の方法でも
+
+```{r}
+#install.packages("psych")
+library(psych)
+pairs.panels(dat2[9:ncol(dat2)])
+
+```
+散布図行列は多変数には向かない
+
+### 無向グラフ
+```{r}
+#install.packages("qgraph")
+library(qgraph)
+#qgraph(cor(dat2[,c(10:ncol(dat2))]),edge.labels=T)
+# Col name
+dat2.parts <- dat2[,c(9:ncol(dat2))]
+colnames(dat2.parts) <- 1:ncol(dat2.parts)
+names.map <- cbind(colnames(dat2.parts), colnames(dat2[,c(9:ncol(dat2))]))
+names.map
+cor(dat2.parts)
+
+qgraph(cor(dat2.parts),edge.labels=T)
+qgraph(cor(dat2.parts),edge.labels=T,minimum=.2,edge.color="black")
+
+# みたいやつだけ残す
+tmp.cor <- cor(dat2.parts)
+tmp.cor[,-2] <- 0
+#tmp.cor[2,] <- cor(dat2.parts)[2,]
+tmp.cor[2,2] <- 0
+tmp.cor
+qgraph(tmp.cor,edge.labels=T)
+```
+### ヒートマップ
+```{r}
+cor.plot(cor(dat2.parts) ,numbers = T)
+```
+
+

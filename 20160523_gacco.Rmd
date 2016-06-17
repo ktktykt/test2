@@ -1,0 +1,111 @@
+---
+title: '2016.5.23 gacco: ga063 社会人のためのデータサイエンス演習 '
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Week4:ビジネスにおける予測と分析結果の報告 ビジネス課題解決のためのデータ分析基礎(事例と手法)(3)
+
+```{r}
+dat.path <- "https://lms.gacco.org/asset-v1:gacco+ga063+2016_04+type@asset+block/dummydata_A.csv"
+dat <- read.csv(file(dat.path, encoding = "Shift-JIS"))
+
+head(dat)
+head(dat[c("食費","年間収入.円.")])
+
+```
+### カンマ区切りの数値を数値型に変換
+
+```{r Edit Data, echo=T}
+colnames(dat[,c(10:ncol(dat))])
+dat2 <- apply(dat[,c(10:ncol(dat))], 1:2, function(x){return (as.integer(gsub(",","",x)))})
+head(dat2, 3)
+head(dat[,c(1:9)])
+dat2 <- cbind(dat[,c(1:9)], dat2)
+head(dat2, 3)
+
+summary(dat2)
+```
+
+## 単回帰
+
+```{r}
+res.lm <- lm(食費~ 年間収入.円., data = dat2)
+summary(res.lm)
+```
+
+# グラフ化
+
+```{r results = 'asis', comment = NA}
+# ```{r results = 'asis', comment = NA} にしておいて
+
+library(rCharts)
+n1 <- rPlot(食費 ~ 年間収入.円., data = dat2, type="point")
+n1$print(include_assets=TRUE)
+
+# うまくグラフが出ない
+# 名前を変えてみる
+colnames(dat2)[grep("年間収入",colnames(dat2))] <- "年間収入円"
+n1 <- rPlot(食費 ~ 年間収入円, data = dat2, type="point")
+n1$print(include_assets=TRUE)
+
+# でた。ドットがダメらしい
+
+# 線形回帰の線を重ねてみる
+#range年間収入円 <- c(min(dat2$年間収入円) : max(dat2$年間収入円))
+range年間収入円 <- dat2$年間収入円
+predict食費 <- res.lm$coefficients[["(Intercept)"]] + res.lm$coefficients[["年間収入.円."]] * range年間収入円
+dat.lm <- data.frame(predict食費, 年間収入円 = range年間収入円)
+
+nrow(dat.lm)
+head(dat.lm)
+
+# 試しプロット
+#rPlot(predict食費 ~ 年間収入円, data = dat.lm, type="line")
+
+# 重ねてプロット
+n1 <- rPlot(食費 ~ 年間収入円, data = dat2, type="point")
+n1$layer(predict食費 ~ 年間収入円, data = dat.lm, type="line")
+n1$print(include_assets=TRUE)
+#n1$show("inline", include_assets = FALSE)
+
+
+# テストの答え
+# これもプロットしてみるか
+ans食費 <- res.lm$coefficients[["(Intercept)"]] + res.lm$coefficients[["年間収入.円."]] * 6000000
+dat.ans <- data.frame(食費=ans食費, 年間収入円=6000000, 種類="答え", サイズ=1.5)
+
+range年間収入円 <- dat2$年間収入円
+predict食費 <- res.lm$coefficients[["(Intercept)"]] + res.lm$coefficients[["年間収入.円."]] * range年間収入円
+dat.lm <- data.frame(食費=predict食費, 年間収入円 = range年間収入円, 種類="予測", サイズ=1)
+
+dat.3 <- data.frame(食費=dat2$食費, 年間収入円=dat2$年間収入円, 種類="実績", サイズ=2)
+
+dat.3.edit <- rbind(dat.3, dat.lm, dat.ans)
+tail(dat.3.edit)
+
+rPlot(食費 ~ 年間収入円, data = dat.3.edit, type="point", color="種類", size="サイズ")
+# 重ねてプロット
+n1 <- rPlot(食費 ~ 年間収入円, data = dat.3.edit, type="point", color="種類", size="サイズ")
+n1$layer(predict食費 ~ 年間収入円, data = dat.lm, type="line", color="種類")
+#n1$layer(ans食費 ~ 年間収入円, data = dat.ans, type="point", color="種類", size="サイズ")
+n1$print(include_assets=TRUE)
+
+```
+
+# 次の問題
+
+```{r results = 'asis', comment = NA}
+
+library(rCharts)
+colnames(dat2)[grep("光熱",colnames(dat2))] <- "光熱水道費"
+n1 <- rPlot(光熱水道費 ~ 年間収入円, data = dat2, type="point")
+n1$print(include_assets=TRUE)
+
+res.lm <- lm(光熱水道費 ~ 年間収入円, data = dat2)
+summary(res.lm)
+```
+
